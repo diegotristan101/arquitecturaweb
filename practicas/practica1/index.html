@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Currículum Interactivo - Diego Muñoz Navarro</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .pantalla {
+      display: none;
+      height: 100vh;
+      width: 100%;
+    }
+    .activa {
+      display: flex;
+    }
+
+    /* Pantalla inicial */
+    #pantallaInicial {
+      background: white;
+      text-align: center;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    #pantallaInicial h1 {
+      font-size: 2.5em;
+      font-weight: bold;
+      margin: 0;
+      color: purple;
+    }
+    #pantallaInicial h2 {
+      font-size: 1.5em;
+      margin-top: 10px;
+      color: #333;
+    }
+    #pantallaInicial a {
+      font-size: 2em;
+      font-weight: bold;
+      margin-top: 40px;
+      text-decoration: none;
+      color: purple;
+      border: 2px solid purple;
+      padding: 10px 20px;
+      border-radius: 10px;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    #pantallaInicial a:hover {
+      background: purple;
+      color: white;
+    }
+
+    /* Pantalla del gato */
+    #pantallaGato {
+      background: url("assets/gato-beso.jpg") no-repeat center center fixed;
+      background-size: cover;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      text-shadow: 2px 2px 5px black;
+    }
+    #pantallaGato h1 {
+      font-size: 3em;
+      font-weight: bold;
+      margin-bottom: 40px;
+    }
+    #botonBeso {
+      padding: 20px 40px;
+      font-size: 24px;
+      border: none;
+      border-radius: 10px;
+      background: purple;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    #botonBeso:hover {
+      background: darkviolet;
+    }
+
+    /* Pantalla CV */
+    #pantallaCV {
+      justify-content: center;
+      align-items: flex-start;
+      background: white;
+      padding: 30px;
+    }
+    #cv {
+      text-align: left;
+      max-width: 800px;
+      margin: auto;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 1s ease, transform 1s ease;
+    }
+    #cv.mostrar {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .cabecera {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .foto {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    h1 {
+      margin: 0;
+      color: purple;
+    }
+    .seccion {
+      margin-bottom: 20px;
+    }
+    .seccion h2 {
+      margin-bottom: 10px;
+      border-bottom: 2px solid purple;
+    }
+    ul {
+      list-style: disc;
+      margin: 0;
+      padding-left: 20px;
+    }
+    a {
+      color: purple;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="pantallaInicial" class="pantalla activa">
+    <h1>Diego Muñoz digital agency</h1>
+    <h2>Bienvenido a la primera práctica de desarrollo web</h2>
+    <a href="#" onclick="mostrarGato()">Curriculum</a>
+  </div>
+
+  <div id="pantallaGato" class="pantalla">
+    <h1>¡¡CAISTEEE!!</h1>
+    <button id="botonBeso" onclick="mostrarCV()">DAR BESO 😘</button>
+  </div>
+
+  <div id="pantallaCV" class="pantalla">
+    <div id="cv">
+      <div class="cabecera">
+        <img src="assets/tu-foto.jpg" alt="Foto de Diego Muñoz" class="foto">
+        <h1>Diego Tristán Muñoz Navarro</h1>
+      </div>
+
+      <div class="seccion">
+        <h2>Datos Personales</h2>
+        <p><strong>Dirección:</strong> Privado</p>
+        <p><strong>Teléfono:</strong> Privado</p>
+        <p><strong>Correo:</strong> diegotristan1001@gmail.com</p>
+      </div>
+
+      <div class="seccion">
+        <h2>Experiencia</h2>
+        <p>- Quesos San Roque – Administrador de Negocios Digitales</p>
+      </div>
+
+      <div class="seccion">
+        <h2>Educación</h2>
+        <p>- Universidad La Salle Bajío</p>
+      </div>
+
+      <div class="seccion">
+        <h2>Habilidades</h2>
+        <ul>
+          <li>Liderazgo y gestión de equipos</li>
+          <li>Comunicación efectiva</li>
+          <li>Análisis de datos y visión estratégica</li>
+          <li>Adaptabilidad y gestión del cambio</li>
+          <li>Marketing digital y comercio electrónico</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function mostrarGato() {
+      document.getElementById("pantallaInicial").classList.remove("activa");
+      document.getElementById("pantallaGato").classList.add("activa");
+    }
+    function mostrarCV() {
+      document.getElementById("pantallaGato").classList.remove("activa");
+      document.getElementById("pantallaCV").classList.add("activa");
+      document.getElementById("cv").classList.add("mostrar");
+    }
+  </script>
+</body>
+</html>

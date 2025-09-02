@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Storm Royale — Mini Battle Royale (HTML/CSS/JS)</title>
+  <style>
+    :root{
+      --bg:#0a0f1a; --accent:#6cf; --accent2:#9f6; --danger:#ff4d6d; --gold:#ffd166; --ink:#0d1324;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    body{background:radial-gradient(1000px 700px at 70% 20%, #0f1a2b 0%, #0a0f1a 60%, #060a12 100%);color:#e8f1ff;display:flex;align-items:center;justify-content:center}
+    .wrap{display:grid;grid-template-columns:320px 768px;gap:16px;max-width:1200px;width:100%;padding:16px}
+    @media (max-width: 1150px){.wrap{grid-template-columns:1fr;}}
+
+    /* HUD / Panel lateral */
+    .panel{background:linear-gradient(180deg,#0f1630, #0a0f1a 60%);border:1px solid #223;box-shadow:0 0 0 1px rgba(255,255,255,.03) inset, 0 10px 30px rgba(0,0,0,.4);border-radius:16px;padding:16px}
+    .title{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.5px}
+    .title .logo{width:24px;height:24px;border-radius:8px;background:conic-gradient(from 0deg,#6cf,#9f6,#ffd166,#6cf)}
+    .stat{display:flex;justify-content:space-between;margin:8px 0;padding:8px;border-radius:12px;background:#0b1327;border:1px solid #1b2646}
+    .bar{height:10px;background:#091028;border-radius:100px;overflow:hidden}
+    .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#4af);width:100%}
+    .bar.shield>i{background:linear-gradient(90deg,#9cf,#6cf)}
+    .bar.hp>i{background:linear-gradient(90deg,#6f9,#2ecc71)}
+
+    .controls{display:grid;gap:6px;font-size:14px;opacity:.9}
+    .controls code{background:#0b1327;border:1px solid #1b2646;padding:2px 6px;border-radius:8px}
+    .btn-row{display:flex;gap:8px;margin-top:8px}
+    button{cursor:pointer;background:linear-gradient(180deg,#2c4a7a,#1b2f54);color:#e8f1ff;border:1px solid #2e4b8a;border-radius:12px;padding:10px 14px;font-weight:600}
+    button:hover{filter:brightness(1.1)}
+
+    /* Canvas wrapper */
+    .stage{position:relative}
+    canvas{width:768px;height:768px;background:repeating-linear-gradient(45deg,#0c1428 0 16px,#0a1020 16px 32px);border-radius:16px;border:1px solid #1a2444;box-shadow:0 15px 40px rgba(0,0,0,.5)}
+
+    /* On-canvas HUD */
+    .hud{position:absolute;inset:0;pointer-events:none}
+    .hud .top{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;gap:8px}
+    .chip{background:#0b1327cc;border:1px solid #1b2646;color:#dce9ff;padding:6px 10px;border-radius:12px;font-size:14px;backdrop-filter:blur(4px)}
+    .hpbar{display:flex;gap:8px;align-items:center}
+    .barHud{width:160px;height:10px;border-radius:100px;overflow:hidden;background:#091028;border:1px solid #1b2646}
+    .barHud>i{display:block;height:100%;width:100%}
+    .hpHud>i{background:linear-gradient(90deg,#6f9,#2ecc71)}
+    .shHud>i{background:linear-gradient(90deg,#9cf,#6cf)}
+    .ammo{position:absolute;bottom:12px;right:12px}
+    .center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-weight:800;font-size:42px;opacity:.0;transition:opacity .4s}
+    .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;padding:10px 14px;background:#0b1327;border:1px solid #1b2646;border-radius:12px;font-weight:600;opacity:0;transition:opacity .3s}
+
+    .minimap{position:absolute;bottom:12px;left:12px;width:160px;height:160px;border-radius:12px;background:#0b1327dd;border:1px solid #1b2646;display:grid;place-items:center;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <div class="title"><div class="logo"></div><div>Storm Royale — Mini battle‑royale</div></div>
+      <div class="stat"><span>Objetivo</span><span>Sobrevive y elimina a todos</span></div>
+      <div class="stat"><span>Jugadores</span><span id="alive">1/10</span></div>
+      <div class="stat"><span>Zona</span><span id="zone">100%</span></div>
+      <div class="stat">
+        <div style="width:100%">
+          <div style="display:flex;justify-content:space-between"><small>Salud</small><small id="hpTxt">100</small></div>
+          <div class="bar hp"><i id="hpBar" style="width:100%"></i></div>
+        </div>
+      </div>
+      <div class="stat">
+        <div style="width:100%">
+          <div style="display:flex;justify-content:space-between"><small>Escudo</small><small id="shTxt">50</small></div>
+          <div class="bar shield"><i id="shBar" style="width:50%"></i></div>
+        </div>
+      </div>
+      <div class="controls">
+        <strong>Controles</strong>
+        <div>Movimiento: <code>W</code> <code>A</code> <code>S</code> <code>D</code></div>
+        <div>Disparar: <code>Click</code>  | Recargar: <code>R</code></div>
+        <div>Recoger/Usar: <code>E</code> | Pausa: <code>P</code></div>
+        <div class="btn-row">
+          <button id="startBtn">Comenzar partida</button>
+          <button id="resetBtn">Reiniciar</button>
+        </div>
+      </div>
+      <p style="opacity:.7;margin-top:10px;font-size:12px">Juego de demostración inspirado en el género battle‑royale. Arte y nombres originales, sin activos de terceros.</p>
+    </aside>
+
+    <div class="stage">
+      <canvas id="game" width="768" height="768"></canvas>
+      <div class="hud">
+        <div class="top">
+          <div class="chip hpbar">
+            <span style="margin-right:8px">HP</span>
+            <div class="barHud hpHud"><i id="hpHud" style="width:100%"></i></div>
+            <span id="hpHudTxt" style="margin-left:8px">100</span>
+          </div>
+          <div class="chip">Olas de bots: <span id="wave">1</span>/3</div>
+          <div class="chip">Eliminaciones: <span id="kills">0</span></div>
+        </div>
+        <div class="ammo chip">Munición: <span id="ammo">30</span> / <span id="reserve">90</span></div>
+        <div class="minimap" id="mini">MINIMAPA</div>
+        <div class="center" id="centerMsg"></div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ========= Storm Royale — Mini Battle Royale =========
+// Single-file demo. No libraries.
+// NOTE: This is an original mini-game inspired by the battle‑royale genre, not a clone of any IP.
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// UI elements
+const ui = {
+  alive: document.getElementById('alive'),
+  zone: document.getElementById('zone'),
+  hpTxt: document.getElementById('hpTxt'),
+  shTxt: document.getElementById('shTxt'),
+  hpBar: document.getElementById('hpBar'),
+  shBar: document.getElementById('shBar'),
+  hpHud: document.getElementById('hpHud'),
+  hpHudTxt: document.getElementById('hpHudTxt'),
+  kills: document.getElementById('kills'),
+  wave: document.getElementById('wave'),
+  ammo: document.getElementById('ammo'),
+  reserve: document.getElementById('reserve'),
+  center: document.getElementById('centerMsg'),
+  toast: document.getElementById('toast')
+};
+
+const keys = {}; const mouse = {x:0,y:0,down:false};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true; if(e.key===' '||e.key==='ArrowUp') e.preventDefault();});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect(); mouse.x=(e.clientX-r.left); mouse.y=(e.clientY-r.top)});
+canvas.addEventListener('mousedown',()=>mouse.down=true);
+addEventListener('mouseup',()=>mouse.down=false);
+
+const rnd = (a,b)=>Math.random()*(b-a)+a;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const dist2 = (a,b)=>{const dx=a.x-b.x, dy=a.y-b.y; return dx*dx+dy*dy};
+
+// World
+const world = { size: 2000, // large map, we render viewport
+  storm:{x:1000,y:1000,r:900, targetR:900, shrinkRate: 12, tick:0},
+  loot:[], bullets:[], enemies:[], effects:[]
+};
+
+// Camera
+const cam = {x:0,y:0, scale:1};
+
+// Player
+const player = {
+  x:1000,y:1000, r:14, speed:3.0, color:'#9f6',
+  hp:100, shield:50, maxHp:100, maxShield:100,
+  ammo:30, reserve:90, magSize:30, fireRate:120, lastShot:0, reloadTime:900, reloading:false,
+  alive:true, kills:0
+};
+
+function resetGame(){
+  player.x=1000; player.y=1000; player.hp=100; player.shield=50; player.ammo=30; player.reserve=90; player.alive=true; player.kills=0; player.reloading=false;
+  world.enemies.length=0; world.bullets.length=0; world.loot.length=0; world.effects.length=0;
+  world.storm={x:1000,y:1000,r:900,targetR:900,shrinkRate:12,tick:0};
+  spawnWave(10);
+  ui.wave.textContent = '1';
+  wavesDone=0;
+  flashCenter('¡Aterrizaste! Busca botín.');
+}
+
+// Loot types
+const LOOT = {
+  AMMO: {kind:'ammo', color:'#ffd166', size:10},
+  SHIELD: {kind:'shield', color:'#6cf', size:10},
+  MED: {kind:'med', color:'#6f9', size:10}
+}
+
+function spawnLoot(x,y){
+  const roll = Math.random();
+  const type = roll<.5? LOOT.AMMO : roll<.75? LOOT.SHIELD : LOOT.MED;
+  world.loot.push({x,y,type, r:type.size});
+}
+
+// Enemies (bots)
+let wavesDone = 0;
+function spawnWave(n){
+  for(let i=0;i<n;i++){
+    let angle = Math.random()*Math.PI*2;
+    let rr = world.storm.r*0.7; // spawn inside storm
+    const x = world.storm.x + Math.cos(angle)*rr;
+    const y = world.storm.y + Math.sin(angle)*rr;
+    world.enemies.push({x,y,r:14, hp:60, speed:rnd(1.2,1.8), color:'#ff6b6b', alive:true, shootTick:0});
+  }
+  updateAliveCount();
+}
+
+function updateAliveCount(){
+  const aliveEnemies = world.enemies.filter(e=>e.alive).length;
+  ui.alive.textContent = `${1+aliveEnemies}/10`;
+}
+
+function damageEntity(ent, dmg){
+  if(!ent.alive) return;
+  let remain = dmg;
+  if(ent===player){
+    if(player.shield>0){
+      const take = Math.min(player.shield, remain);
+      player.shield -= take; remain -= take;
+    }
+    if(remain>0){ player.hp -= remain; if(player.hp<=0){ player.alive=false; player.hp=0; gameOver(false);} }
+  }else{
+    ent.hp -= remain; if(ent.hp<=0){ ent.alive=false; player.kills++; ui.kills.textContent=player.kills; spawnLoot(ent.x,ent.y); pop(ent.x,ent.y,'#fff'); updateAliveCount(); checkWin(); }
+  }
+}
+
+function checkWin(){
+  if(world.enemies.every(e=>!e.alive)){
+    wavesDone++;
+    if(wavesDone<3){
+      ui.wave.textContent = String(wavesDone+1);
+      spawnWave( (wavesDone+1)*10 - player.kills );
+      flashCenter('¡Nueva ola de bots!');
+    }else{
+      gameOver(true);
+    }
+  }
+}
+
+function gameOver(win){
+  showToast(win? '🏆 ¡Victoria magistral!':'💀 Derrota');
+  flashCenter(win? '¡GANASTE!':'GAME OVER');
+  stopLoop = true;
+}
+
+function showToast(text){
+  ui.toast.textContent=text; ui.toast.style.opacity=1; clearTimeout(ui.toast._t);
+  ui.toast._t=setTimeout(()=>ui.toast.style.opacity=0,2000);
+}
+function flashCenter(text){
+  ui.center.textContent=text; ui.center.style.opacity=1; clearTimeout(ui.center._t);
+  ui.center._t=setTimeout(()=>ui.center.style.opacity=0,1600);
+}
+function pop(x,y,color){
+  world.effects.push({x,y,t:0,color});
+}
+
+// Shooting
+function tryShoot(){
+  const now = performance.now();
+  if(player.reloading){ return; }
+  if(now - player.lastShot < player.fireRate){ return; }
+  if(player.ammo<=0){ showToast('Sin munición. Presiona R para recargar.'); return; }
+  player.lastShot = now; player.ammo--; ui.ammo.textContent=player.ammo;
+  // direction to mouse
+  const dx = (mouse.x + cam.x) - player.x;
+  const dy = (mouse.y + cam.y) - player.y;
+  const len = Math.hypot(dx,dy) || 1; const vx = (dx/len)*10; const vy=(dy/len)*10;
+  world.bullets.push({x:player.x, y:player.y, vx, vy, life:80, r:3, from:'player'});
+}
+
+function reload(){
+  if(player.reloading) return;
+  if(player.ammo===player.magSize || player.reserve<=0) return;
+  player.reloading = true; showToast('Recargando...');
+  setTimeout(()=>{
+    const need = player.magSize - player.ammo;
+    const take = Math.min(need, player.reserve);
+    player.ammo += take; player.reserve -= take; player.reloading=false;
+    ui.ammo.textContent=player.ammo; ui.reserve.textContent=player.reserve;
+  }, player.reloadTime);
+}
+
+// Storm shrinking
+function updateStorm(dt){
+  world.storm.tick += dt;
+  if(world.storm.r > 180){
+    world.storm.targetR -= world.storm.shrinkRate*dt/1000; // slow shrink
+    world.storm.r += (world.storm.targetR - world.storm.r)*0.02; // ease
+  }
+  const percent = Math.round((world.storm.r/900)*100);
+  ui.zone.textContent = `${percent}%`;
+
+  // damage outside
+  const d2 = (player.x-world.storm.x)**2 + (player.y-world.storm.y)**2;
+  if(d2 > world.storm.r**2){
+    // storm tick damage
+    if(world.storm.tick % 600 < 16){
+      damageEntity(player, 5);
+    }
+  }
+}
+
+// Game loop
+let last=0, stopLoop=true;
+function loop(ts){
+  if(stopLoop) return;
+  const dt = ts - last; last = ts;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  // Movement
+  const dir = {x:0,y:0};
+  if(keys['w']) dir.y -= 1;
+  if(keys['s']) dir.y += 1;
+  if(keys['a']) dir.x -= 1;
+  if(keys['d']) dir.x += 1;
+  let len = Math.hypot(dir.x,dir.y) || 1;
+  player.x += (dir.x/len)*player.speed* (keys['shift']?1.6:1.0) * (dt/16);
+  player.y += (dir.y/len)*player.speed* (keys['shift']?1.6:1.0) * (dt/16);
+  player.x = clamp(player.x, 0, world.size);
+  player.y = clamp(player.y, 0, world.size);
+
+  // Camera follows
+  cam.x = clamp(player.x - canvas.width/2, 0, world.size-canvas.width);
+  cam.y = clamp(player.y - canvas.height/2, 0, world.size-canvas.height);
+
+  // Shoot
+  if(mouse.down) tryShoot();
+  if(keys['r']) reload();
+
+  // Enemies AI: wander + chase
+  for(const e of world.enemies){
+    if(!e.alive) continue;
+    const dx = player.x - e.x, dy = player.y - e.y; const d = Math.hypot(dx,dy);
+    const chase = d<380; const vx = (dx/(d||1))*e.speed; const vy=(dy/(d||1))*e.speed;
+    if(chase){ e.x += vx*(dt/16); e.y += vy*(dt/16); }
+    else { e.x += Math.sin(performance.now()/600+e.x)*0.2; e.y += Math.cos(performance.now()/600+e.y)*0.2; }
+
+    // enemy shooting
+    e.shootTick += dt;
+    if(chase && e.shootTick>700){
+      e.shootTick=0;
+      const bx = (dx/(d||1))*8, by=(dy/(d||1))*8;
+      world.bullets.push({x:e.x,y:e.y,vx:bx,vy:by, life:90, r:3, from:'enemy'});
+    }
+  }
+
+  // Bullets
+  for(const b of world.bullets){
+    b.x += b.vx; b.y += b.vy; b.life--; if(b.life<=0) b.dead=true;
+    if(b.from==='player'){
+      // hit enemies
+      for(const e of world.enemies){ if(!e.alive) continue; if(dist2(b,e) < (e.r+4)**2){ damageEntity(e, 34); b.dead=true; pop(b.x,b.y,'#9cf'); break; }}
+    }else{
+      if(dist2(b,player) < (player.r+4)**2){ damageEntity(player, 14); b.dead=true; pop(b.x,b.y,'#ff8aa0'); }
+    }
+  }
+  world.bullets = world.bullets.filter(b=>!b.dead);
+
+  // Loot pickup
+  for(const l of world.loot){
+    if(dist2(l,player) < (player.r+l.r+6)**2){ l.near=true; if(keys['e']){
+      if(l.type.kind==='ammo'){ player.reserve+=30; ui.reserve.textContent=player.reserve; showToast('+ Munición'); }
+      if(l.type.kind==='shield'){ player.shield = clamp(player.shield+25,0,player.maxShield); showHUD(); showToast('+ Escudo'); }
+      if(l.type.kind==='med'){ player.hp = clamp(player.hp+30,0,player.maxHp); showHUD(); showToast('+ Salud'); }
+      l.dead=true; pop(l.x,l.y,'#fff');
+    }} else { l.near=false; }
+  }
+  world.loot = world.loot.filter(l=>!l.dead);
+
+  // Effects lifetime
+  for(const ef of world.effects){ ef.t += dt; }
+  world.effects = world.effects.filter(ef=>ef.t<300);
+
+  updateStorm(dt);
+  showHUD();
+}
+
+function showHUD(){
+  ui.hpTxt.textContent = Math.round(player.hp);
+  ui.shTxt.textContent = Math.round(player.shield);
+  ui.hpBar.style.width = (player.hp/player.maxHp*100)+'%';
+  ui.shBar.style.width = (player.shield/player.maxShield*100)+'%';
+  ui.hpHud.style.width = ui.hpBar.style.width; ui.hpHudTxt.textContent=Math.round(player.hp);
+}
+
+function draw(){
+  // clear
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // draw storm
+  ctx.save();
+  ctx.translate(-cam.x,-cam.y);
+  // storm outer dark
+  ctx.fillStyle='rgba(70,120,255,0.06)';
+  ctx.beginPath(); ctx.arc(world.storm.x,world.storm.y,world.storm.r+20,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(120,180,255,0.6)'; ctx.lineWidth=6; ctx.beginPath(); ctx.arc(world.storm.x,world.storm.y,world.storm.r,0,Math.PI*2); ctx.stroke();
+
+  // grid landmarks
+  ctx.strokeStyle='rgba(255,255,255,0.05)';
+  for(let i=0;i<=world.size;i+=200){ ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,world.size); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(world.size,i); ctx.stroke(); }
+
+  // loot
+  for(const l of world.loot){
+    ctx.fillStyle=l.type.color; ctx.beginPath(); ctx.arc(l.x,l.y,l.r,0,Math.PI*2); ctx.fill();
+    if(l.near){ ctx.strokeStyle='#fff'; ctx.strokeText('E: Recoger', l.x-20, l.y-16); }
+  }
+
+  // enemies
+  for(const e of world.enemies){
+    if(!e.alive) continue;
+    ctx.fillStyle=e.color; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill();
+    // small hp bar
+    ctx.fillStyle='#111a'; ctx.fillRect(e.x-16,e.y-24,32,6);
+    ctx.fillStyle='#3f6'; ctx.fillRect(e.x-16,e.y-24, clamp(e.hp/60,0,1)*32,6);
+  }
+
+  // player
+  ctx.fillStyle=player.color; ctx.beginPath(); ctx.arc(player.x,player.y,player.r,0,Math.PI*2); ctx.fill();
+
+  // player facing line to mouse
+  ctx.strokeStyle='#9f6'; ctx.beginPath(); ctx.moveTo(player.x,player.y); ctx.lineTo(cam.x+mouse.x, cam.y+mouse.y); ctx.stroke();
+
+  // bullets
+  for(const b of world.bullets){ ctx.fillStyle=b.from==='player'? '#9cf':'#ff99aa'; ctx.beginPath(); ctx.arc(b.x,b.y,3,0,Math.PI*2); ctx.fill(); }
+
+  // effects
+  for(const ef of world.effects){ const k = ef.t/300; ctx.strokeStyle=ef.color; ctx.globalAlpha = 1-k; ctx.beginPath(); ctx.arc(ef.x,ef.y, 6+24*k, 0, Math.PI*2); ctx.stroke(); ctx.globalAlpha=1; }
+
+  ctx.restore();
+
+  // minimap
+  const mini = document.getElementById('mini');
+  const scale = 160/world.size;
+  const px = Math.round(player.x*scale), py=Math.round(player.y*scale);
+  const sr = Math.max(4, Math.round(world.storm.r*scale));
+  mini.innerHTML = `<svg width="160" height="160">
+    <rect x="0" y="0" width="160" height="160" rx="12" ry="12" fill="#0b1327" stroke="#1b2646" />
+    <circle cx="${Math.round(world.storm.x*scale)}" cy="${Math.round(world.storm.y*scale)}" r="${sr}" fill="rgba(120,180,255,0.08)" stroke="rgba(120,180,255,.6)" />
+    <circle cx="${px}" cy="${py}" r="4" fill="#9f6" />
+  </svg>`;
+}
+
+// Buttons
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
+startBtn.onclick = ()=>{ stopLoop=false; last=performance.now(); loop(last); showToast('¡Partida iniciada!'); };
+resetBtn.onclick = ()=>{ resetGame(); stopLoop=false; last=performance.now(); loop(last); };
+
+// Helper: seed world with loot
+for(let i=0;i<30;i++){ spawnLoot(rnd(200,1800), rnd(200,1800)); }
+resetGame();
+showHUD();
+</script>
+</body>
+</html>

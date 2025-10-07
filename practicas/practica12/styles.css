@@ -1,0 +1,39 @@
+body{
+    background-color: black;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin : 0;
+    padding: 0;
+}
+.Container{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 20px;
+}
+.item{
+    background-color: #333;
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.item:hover{
+    background-color: #ffffffc1;
+    transform: scale(1.05);
+}
+@media screen and (max-width: 768px) {
+    .Container{
+        grid-template-columns: 1fr 1fr;
+    }
+    
+}
+img{
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
